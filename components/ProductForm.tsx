@@ -113,8 +113,20 @@ const ProductForm: React.FC<ProductFormProps> = ({
     setQuotaExceeded(false);
 
     try {
-      // Crear instancia justo antes de la llamada para asegurar el uso de la clave más reciente
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const apiKey = process.env.GEMINI_API_KEY;
+      
+      // En Vercel u otros entornos, si la variable no está configurada, puede llegar como 'undefined' o vacío
+      if (!apiKey || apiKey === 'undefined') {
+        const isVercel = window.location.hostname.includes('vercel.app');
+        const errorMessage = isVercel 
+          ? "La API Key de Gemini no está configurada en las variables de entorno de Vercel. Por favor, añada GEMINI_API_KEY en el panel de control de Vercel."
+          : "Falta la clave API de Gemini. Por favor, configúrela para usar la sugerencia por IA.";
+        alert(errorMessage);
+        setIsSuggesting(false);
+        return;
+      }
+
+      const ai = new GoogleGenAI({ apiKey });
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: `Investiga en el portal especializado MATMAX (https://www.matmax.es) el producto del fabricante "${manufacturerName}" con referencia "${manufacturerRef}".
@@ -153,18 +165,23 @@ REGLAS DE FORMATO ERP:
         setGroundingSources(sources);
       }
     } catch (error: any) {
-      console.error("Error suggesting description:", error);
+      console.error("DEBUG: Error suggesting description:", error);
       const errorMsg = error?.message || "";
       
       if (errorMsg.includes("429") || errorMsg.includes("quota") || errorMsg.includes("RESOURCE_EXHAUSTED")) {
         setQuotaExceeded(true);
-      } else if (errorMsg.includes("Requested entity was not found")) {
+      } else if (errorMsg.includes("Requested entity was not found") || errorMsg.includes("API_KEY_INVALID")) {
         // Error de clave inválida o proyecto no encontrado
-        alert("La clave API seleccionada no es válida o el proyecto no existe. Por favor, seleccione otra.");
-        // Fixed: Use (window as any).aistudio to call openSelectKey
-        await (window as any).aistudio.openSelectKey();
+        alert("La clave API seleccionada no es válida. Por favor, asegúrese de que GEMINI_API_KEY sea correcta.");
+        try {
+          if ((window as any).aistudio?.openSelectKey) {
+            await (window as any).aistudio.openSelectKey();
+          }
+        } catch (e) {
+          console.warn("AI Studio select key is not available in this environment.");
+        }
       } else {
-        alert("Ocurrió un error al consultar la IA. Por favor, intente de nuevo más tarde.");
+        alert(`Error al consultar la IA: ${errorMsg || 'Error desconocido'}`);
       }
     } finally {
       setIsSuggesting(false);
