@@ -128,7 +128,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
 
       const ai = new GoogleGenAI({ apiKey });
       const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-1.5-flash',
         contents: `Investiga en el portal especializado MATMAX (https://www.matmax.es) el producto del fabricante "${manufacturerName}" con referencia "${manufacturerRef}".
 
 OBJETIVO: Obtener la descripción técnica real y adaptarla al formato ERP.
