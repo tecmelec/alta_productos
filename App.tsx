@@ -6,7 +6,7 @@ import ProductForm from './components/ProductForm';
 import Settings from './components/Settings';
 import ExternalProducts from './components/ExternalProducts';
 import ReferenceInspection from './components/ReferenceInspection';
-import { ITEM_CATEGORIES, MANUFACTURERS, UNITS_OF_MEASURE } from './constants';
+import { ITEM_CATEGORIES, MANUFACTURERS, UNITS_OF_MEASURE, filterHiddenCategories } from './constants';
 
 const DEFAULT_BC_CONFIG: BCConfig = {
   tenantId: '',
@@ -44,6 +44,9 @@ const App: React.FC = () => {
     const saved = localStorage.getItem('bc_settings');
     const parsed = saved ? JSON.parse(saved) : DEFAULT_SETTINGS;
     if (!parsed.bcConfig) parsed.bcConfig = DEFAULT_BC_CONFIG;
+    // Se filtran categorías ocultas también aquí, por si quedaron guardadas
+    // en localStorage de una sesión anterior (p.ej. cargadas manualmente).
+    parsed.categories = filterHiddenCategories(parsed.categories || []);
     return parsed;
   });
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -73,8 +76,9 @@ const App: React.FC = () => {
   };
 
   const handleBulkCategories = (newCategories: ItemCategory[]) => {
-    setSettings(prev => ({ ...prev, categories: newCategories }));
-    alert(`${newCategories.length} categorías cargadas correctamente.`);
+    const filtered = filterHiddenCategories(newCategories);
+    setSettings(prev => ({ ...prev, categories: filtered }));
+    alert(`${filtered.length} categorías cargadas correctamente.`);
   };
 
   return (
